@@ -1,0 +1,16 @@
+{
+  "name": "practica-npm-maria",
+  "version": "1.0.0",
+  "description": "my first practice of npm ",
+  "main": "index.js",
+  "type":"module",
+  "scripts": {
+    "start:dev": "nodemon index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "maria fernanda rodriguez macias",
+  "license": "ISC",
+  "dependencies": {
+    "nodemon": "^3.0.3"
+  }
+}
