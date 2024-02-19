@@ -43,7 +43,7 @@ const getBook = (titleOrISBN) => {
   }
 };
 
-const getBOoks=(allBooks)=>{
+const getBooks=(allBooks)=>{
   try {
     const books = readJson("books.json");
     return sendReponse (200, books); 
@@ -59,29 +59,29 @@ const addBook = (title, ISBN, year, genre, author, stock, publisher) => {
     const books = readJson("books.json");
     let exists = books.some(book => book.ISBN === ISBN);
     if (exists) {
-      return sendResponse(400);
+      return sendReponse(400, "Book already exists");
     } else {
       const newBook = { "title": title, "ISBN": ISBN, "year": year, "genre": genre, "author": author, "stock": stock, "publisher": publisher };
       books.push(newBook);
-      updateJson("book-test.json", books);
-      console.log("New book added:", newBook);
-      return sendResponse(200, newBook);
+      updateJson(books, "books-test.json");
+      return sendReponse(200, newBook);
     }
   } catch (error) {
-    return sendResponse(500, error);
+    return sendReponse(500, error);
   }
 }
 
 const removeBookByTitleOrISBN = (removeTitleOrISBN) => {
   try {
-    const books= readJson("books.json");
-    books.array.forEach(element => {
-      if (element.ISBN === titleOrISBN || element.title === titleOrISBN) {
-        books.array.splice(element, 1);
-        return sendReponse(200, "Book removed");
-      }
-      
-    });
+    const books = readJson("books.json");
+    const index = books.findIndex((book) => book.ISBN === removeTitleOrISBN || book.title === removeTitleOrISBN);
+    if (index !== -1) {
+      books.splice(index, 1);
+      updateJson(books, "books-test.json");
+      return sendReponse(200, "Book removed");
+    } else {
+      return sendReponse(404, "Book not found");
+    }
   } catch (error) {
     return sendReponse(500, "Internal Server Error");
   }
@@ -91,7 +91,11 @@ const filterBy = (genre) => {
   try {
     const books = readJson("books.json");
     const filteredBooks = books.filter((book) => book.genre === genre);
-    return sendReponse(200, filteredBooks);
+    if (filteredBooks.length > 0) {
+      return sendReponse(200, filteredBooks);
+    } else {
+      return sendReponse(404, "Book not found");
+    }
   } catch (error) {
     return sendReponse(500, "Internal Server Error");
   }
@@ -106,28 +110,28 @@ const listBooks = () => {
   }
 };
 
-const getBOoksByYear = (year) => {
-  try{
-    const book=readJson("books.json");
-    const booksByYear=books.filter((book)=>book.year===year);
-    return sendReponse(200, booksByYear);
-
-  }catch(error){
+const getBooksByYear = (year) => {
+  try {
+    const books = readJson("books.json");
+    const booksByYear = books.filter((book) => book.year === year);
+    return sendReponse(200,  booksByYear);
+  } catch (error) {
     return sendReponse(500, "Internal Server Error");
   }
-}
+};
 
-const getBOoksFullAvailability =(genreFull)=>{
+const getBooksFullAvailability = (genreFull) => {
   try {
-    const books=readJson("books.json");
-    const stock = books.every((book) => book.stock > 0);
+    const books = readJson("books.json");
+    const filteredBooks = books.filter((book) => book.genre === genreFull);
+    const stock = filteredBooks.every((book) => book.stock > 0);
     if (stock === true) {
-        return sendReponse(200, stock);
+      return sendReponse(200, stock);
     } else {
-        return sendReponse(400, stock);
+      return sendReponse(400, stock);
     }
   } catch (error) {
-    
+    return sendReponse(500, "Internal Server Error");
   }
 }
 
@@ -146,20 +150,25 @@ const genrePartialAvailability = (genrePartial) => {
 
 }
 
-const getCountBy = (genreContry) => {
+const getCountBy = (genreCountry) => {
   try {
     const books = readJson("books.json");
     const count = books.reduce((acc, book) => {
-        if (book.genre === genre) {
-            acc++;
-        }
-        return acc;
-    }, 0);
-    return sendReponse(200, count);
+      if (acc[book[genreCountry]]) {
+        acc[book[genreCountry]] += 1;
+      } else {
+        acc[book[genreCountry]] = 1;
+      }
+      return acc;
+    }, {});
+    if (Object.keys(count).length > 0) {
+      return sendReponse(200, count);
+    } else {
+      return sendReponse(404);
+    }
   } catch (error) {
     return sendReponse(500, "Internal Server Error");
   }
-
 }
 
 
@@ -199,9 +208,9 @@ function main() {
       console.log(getBook(titleOrISBN));
       break;
     case "getBooks":
-      console.log(getBOoks());
+      console.log(getBooks());
       break;
-      /** 
+    /** 
       case "addBook":
         let title = args[1];
         let ISBN = args[2];
@@ -211,8 +220,9 @@ function main() {
         let stock = args[6];
         let publisher = args[7];
         console.log(addBook(title, ISBN, year, genre, author, stock, publisher));
-        break;*/
-      case "removeBookByTitleOrISBN":
+        break;
+        */
+    case "removeBookByTitleOrISBN":
         const removeTitleOrISBN = args[1];
         console.log(removeBookByTitleOrISBN(removeTitleOrISBN));
         break;
@@ -229,22 +239,25 @@ function main() {
       break;
 
     case "getBooksByYear":
-      const year = args[1];
-      console.log(getBOoksByYear(year));
+      const year = parseInt(args[1]);
+      console.log(getBooksByYear(year));
       break;
 
     case "getBooksFullAvailability":
       const genreFull = args[1];
-      console.log(getBOoksFullAvailability(genre));
+      console.log(getBooksFullAvailability(genreFull));
       break;
     case "genrePartialAvailability":
       const genrePartial = args[1];
-      console.log(genrePartialAvailability(genre));
+      console.log(genrePartialAvailability(genrePartial));
       break;
     case "getCountBy":
       const genreContry = args[1];
-      console.log(getCountBy(genre));
+      console.log(getCountBy(genreContry));
       break;  
+    case "listBooks":
+      console.log(listBooks());
+      break;
 
     default:
       console.log("Endpoint no válido");
